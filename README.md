@@ -113,6 +113,38 @@ test/                                  # bats-core test suite
     exports/                           # Migration snapshots
 ```
 
+## Testing
+
+Tests use [bats-core](https://github.com/bats-core/bats-core) (Bash Automated Testing System).
+
+**Prerequisites:** `bats`, `jq`, `git`
+
+```bash
+# Run all tests
+bats test/
+
+# Run a single test file
+bats test/install_fresh.bats
+
+# Verbose output
+bats --verbose-run test/
+```
+
+The devcontainer (`.devcontainer/`) installs all dependencies automatically including bats v1.11.1.
+
+**Test files:**
+
+| File                      | What it covers                          |
+| ------------------------- | --------------------------------------- |
+| `install_fresh.bats`      | Fresh install into an empty project     |
+| `install_flags.bats`      | Installer CLI flags (`--yes`, `--help`) |
+| `merge_settings.bats`     | Merging with existing settings.json     |
+| `merge_claude_md.bats`    | Merging with existing CLAUDE.md         |
+| `hooks.bats`              | Hook scripts (guard, logger, init)      |
+| `override.bats`           | Override/conflict handling              |
+
+Each test runs in an isolated sandbox (temp dir with `git init`) that is cleaned up automatically.
+
 ## Migration
 
 State is portable between projects via KernelSnapshot:
