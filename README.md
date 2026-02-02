@@ -65,14 +65,7 @@ At step 0, these start mostly empty. They fill in as you give feedback and run `
 2. **All changes are logged** — every self-modification is recorded in the append-only event log
 3. **The principal stays in control** — the human can halt, inspect, and roll back at any time
 
-Enforcement is defense-in-depth:
-
-| Layer               | Mechanism               | Purpose                                 |
-| ------------------- | ----------------------- | --------------------------------------- |
-| Settings deny rules | `.claude/settings.json` | Structural — agent cannot override      |
-| PreToolUse hook     | `pre-edit-guard.sh`     | Blocks edits to protected files         |
-| PostToolUse hook    | `post-edit-logger.sh`   | Auto-logs all mutable surface edits     |
-| Kernel rules        | `.claude/rules/kernel/` | Behavioral instructions (always loaded) |
+These are enforced by four defense-in-depth layers. See `ARCHITECTURE.md` for the full enforcement mapping.
 
 ## Project Structure
 
@@ -132,16 +125,43 @@ The devcontainer (`.devcontainer/`) installs all dependencies automatically incl
 
 **Test files:**
 
-| File                   | What it covers                          |
-| ---------------------- | --------------------------------------- |
-| `install_fresh.bats`   | Fresh install into an empty project     |
-| `install_flags.bats`   | Installer CLI flags (`--yes`, `--help`) |
-| `merge_settings.bats`  | Merging with existing settings.json     |
-| `merge_claude_md.bats` | Merging with existing CLAUDE.md         |
-| `hooks.bats`           | Hook scripts (guard, logger, init)      |
-| `override.bats`        | Override/conflict handling              |
+| File                       | What it covers                                      |
+| -------------------------- | --------------------------------------------------- |
+| `install_fresh.bats`       | Fresh install into an empty project                 |
+| `install_flags.bats`       | Installer CLI flags (`--yes`, `--help`)             |
+| `merge_settings.bats`      | Merging with existing settings.json                 |
+| `merge_claude_md.bats`     | Merging with existing CLAUDE.md                     |
+| `hooks.bats`               | Hook scripts (guard, logger, init)                  |
+| `override.bats`            | Override/conflict handling                           |
+| `kernel_enforcement.bats`  | Structural consistency of enforcement layers        |
+| `agent_enforcement.bats`   | Claude Code deny rules + preflight format checks    |
+| `cycle_protocol.bats`      | End-to-end self-evolution cycle behavior             |
 
 Each test runs in an isolated sandbox (temp dir with `git init`) that is cleaned up automatically.
+
+### Live agent tests
+
+The `agent_enforcement.bats` and `cycle_protocol.bats` files include tests that run the actual `claude` CLI to verify enforcement and behavior at runtime. These are skipped by default and require opting in:
+
+```bash
+# Run all tests (agent tests skip without the flag)
+bats test/
+
+# Run with live agent tests enabled
+PATH_AGENT_TESTS=1 bats test/
+
+# Run just the cycle protocol tests with verbose output
+PATH_AGENT_TESTS=1 bats --verbose-run test/cycle_protocol.bats
+```
+
+**Requirements:** `claude` CLI installed with valid API authentication.
+
+**What the agent tests cover:**
+
+- **Deny rule enforcement** — the agent cannot modify any of the 5 protected files (`invariants.md`, `cycle-protocol.md`, `settings.json`, `event-log.jsonl`, `config.json`), even with `--dangerously-skip-permissions`
+- **Positive control** — the agent can modify mutable rule files (confirms enforcement is targeted)
+- **Evolve cycle (pass@3)** — a multi-turn test gives the agent a task, then provides feedback. The agent auto-invokes the evolve skill and modifies rules, without any mention of `/evolve` in the prompt. Uses outcome-based grading per [Anthropic's agent eval methodology](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents): rule file modified, events logged, kernel files intact
+- **Adversarial boundary** — feedback explicitly asking to modify kernel files is blocked by deny rules
 
 ## Migration
 
