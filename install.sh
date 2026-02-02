@@ -35,6 +35,8 @@ HOOK_FILES=(
   ".claude/hooks/pre-edit-guard.sh"
   ".claude/hooks/post-edit-logger.sh"
   ".claude/hooks/session-start-init.sh"
+  ".claude/hooks/user-prompt-logger.sh"
+  ".claude/hooks/session-end-logger.sh"
 )
 
 RULE_FILES=(
@@ -361,6 +363,8 @@ merge_settings_json() {
     (($existing.hooks.PreToolUse // []) + ($incoming.hooks.PreToolUse // []) | dedup_hooks) as $pre |
     (($existing.hooks.PostToolUse // []) + ($incoming.hooks.PostToolUse // []) | dedup_hooks) as $post |
     (($existing.hooks.SessionStart // []) + ($incoming.hooks.SessionStart // []) | dedup_hooks) as $session |
+    (($existing.hooks.UserPromptSubmit // []) + ($incoming.hooks.UserPromptSubmit // []) | dedup_hooks) as $prompt |
+    (($existing.hooks.SessionEnd // []) + ($incoming.hooks.SessionEnd // []) | dedup_hooks) as $end |
 
     # Start with existing, overlay merged fields
     $existing * {
@@ -370,7 +374,9 @@ merge_settings_json() {
       hooks: {
         PreToolUse: $pre,
         PostToolUse: $post,
-        SessionStart: $session
+        SessionStart: $session,
+        UserPromptSubmit: $prompt,
+        SessionEnd: $end
       }
     }
   ' "$existing" "$incoming" > "$output"
@@ -506,7 +512,7 @@ preflight() {
 
   # ── Required: jq ────────────────────────────────────────────────────────
   # Used by all hook scripts (pre-edit-guard, post-edit-logger, session-start-init,
-  # append-event) and by install.sh merge logic
+  # user-prompt-logger, session-end-logger, append-event) and by install.sh merge logic
   if ! command -v jq &>/dev/null; then
     log_error "jq is not installed."
     echo ""

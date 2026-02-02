@@ -197,3 +197,88 @@ teardown() { teardown_sandbox; }
   line=$(head -1 .claude/path-kernel/event-log.jsonl)
   [ "$(echo "$line" | jq -r '.data.raw')" = "not valid json" ]
 }
+
+# --- user-prompt-logger.sh ---
+
+@test "user-prompt-logger logs perception:situation event" {
+  echo '{"prompt":"hello"}' | bash .claude/hooks/user-prompt-logger.sh 2>/dev/null
+
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 1 ]
+  [ "$(head -1 .claude/path-kernel/event-log.jsonl | jq -r '.type')" = "perception:situation" ]
+}
+
+@test "user-prompt-logger captures prompt text" {
+  echo '{"prompt":"hello world"}' | bash .claude/hooks/user-prompt-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  [ "$(echo "$line" | jq -r '.data.prompt')" = "hello world" ]
+  [ "$(echo "$line" | jq -r '.data.source')" = "user" ]
+}
+
+@test "user-prompt-logger truncates long prompts" {
+  local long_prompt
+  long_prompt=$(python3 -c "print('x' * 3000)")
+  echo "{\"prompt\":\"$long_prompt\"}" | bash .claude/hooks/user-prompt-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  local prompt_len
+  prompt_len=$(echo "$line" | jq -r '.data.prompt' | wc -c)
+  [ "$prompt_len" -le 2001 ]  # wc -c includes trailing newline
+}
+
+@test "user-prompt-logger silent on empty prompt" {
+  echo '{"prompt":""}' | bash .claude/hooks/user-prompt-logger.sh 2>/dev/null
+
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 0 ]
+}
+
+@test "user-prompt-logger reads promptVersion from state.json" {
+  echo '{"lastTask":"test","lastFeedback":null,"lastModification":null,"lastModificationRationale":null,"awaitingFeedback":false,"cycleCount":4}' \
+    > .claude/path-kernel/state.json
+
+  echo '{"prompt":"hello"}' | bash .claude/hooks/user-prompt-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  [ "$(echo "$line" | jq '.promptVersion')" -eq 4 ]
+}
+
+# --- session-end-logger.sh ---
+
+@test "session-end-logger logs system:session-end event" {
+  echo '{"reason":"user_exit"}' | bash .claude/hooks/session-end-logger.sh 2>/dev/null
+
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 1 ]
+  [ "$(head -1 .claude/path-kernel/event-log.jsonl | jq -r '.type')" = "system:session-end" ]
+}
+
+@test "session-end-logger captures reason" {
+  echo '{"reason":"user_exit"}' | bash .claude/hooks/session-end-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  [ "$(echo "$line" | jq -r '.data.reason')" = "user_exit" ]
+  [ "$(echo "$line" | jq -r '.data.source')" = "claude-code" ]
+  [ "$(echo "$line" | jq -r '.data.event')" = "session-end" ]
+}
+
+@test "session-end-logger defaults reason to unknown" {
+  echo '{}' | bash .claude/hooks/session-end-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  [ "$(echo "$line" | jq -r '.data.reason')" = "unknown" ]
+}
+
+@test "session-end-logger reads promptVersion from state.json" {
+  echo '{"lastTask":"test","lastFeedback":null,"lastModification":null,"lastModificationRationale":null,"awaitingFeedback":false,"cycleCount":9}' \
+    > .claude/path-kernel/state.json
+
+  echo '{"reason":"user_exit"}' | bash .claude/hooks/session-end-logger.sh 2>/dev/null
+
+  local line
+  line=$(head -1 .claude/path-kernel/event-log.jsonl)
+  [ "$(echo "$line" | jq '.promptVersion')" -eq 9 ]
+}

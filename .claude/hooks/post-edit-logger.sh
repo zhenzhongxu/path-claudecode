@@ -6,7 +6,8 @@
 # Mutable surfaces are read from .claude/path-kernel/config.json (agentCanModify).
 
 SCRIPT_DIR=$(dirname "$0")
-CONFIG_FILE="$SCRIPT_DIR/../path-kernel/config.json"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CONFIG_FILE="$PROJECT_DIR/.claude/path-kernel/config.json"
 
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
@@ -63,7 +64,7 @@ else
 fi
 
 # Read current prompt version from state.json
-STATE_FILE="$SCRIPT_DIR/../path-kernel/state.json"
+STATE_FILE="$PROJECT_DIR/.claude/path-kernel/state.json"
 PROMPT_VERSION=0
 if [ -f "$STATE_FILE" ]; then
   PROMPT_VERSION=$(jq '.cycleCount // 0' "$STATE_FILE" 2>/dev/null) || PROMPT_VERSION=0

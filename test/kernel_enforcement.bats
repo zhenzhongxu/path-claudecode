@@ -116,6 +116,30 @@ teardown() { teardown_sandbox; }
     || { echo "SessionStart hook missing"; return 1; }
 }
 
+@test "UserPromptSubmit hook is configured in settings.json" {
+  jq -e '.hooks.UserPromptSubmit | length > 0' .claude/settings.json >/dev/null \
+    || { echo "UserPromptSubmit hook missing"; return 1; }
+}
+
+@test "SessionEnd hook is configured in settings.json" {
+  jq -e '.hooks.SessionEnd | length > 0' .claude/settings.json >/dev/null \
+    || { echo "SessionEnd hook missing"; return 1; }
+}
+
+@test "every hook script in .claude/hooks/ is referenced by settings.json" {
+  # Get all .sh files installed as hooks (exclude append-event.sh — it's a utility, not a hook)
+  local installed_hooks
+  installed_hooks=$(ls .claude/hooks/*.sh | xargs -n1 basename | grep -v '^append-event\.sh$' | sort)
+
+  # Get all scripts referenced by hook commands in settings.json
+  local referenced_hooks
+  referenced_hooks=$(jq -r '[.hooks[][].hooks[].command] | .[]' .claude/settings.json \
+    | sed 's/^bash //' | xargs -n1 basename | sort | uniq)
+
+  [ "$installed_hooks" = "$referenced_hooks" ] \
+    || { echo "installed hooks: $installed_hooks"; echo "referenced hooks: $referenced_hooks"; return 1; }
+}
+
 @test "hook commands reference scripts that exist" {
   local scripts
   scripts=$(jq -r '
