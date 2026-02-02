@@ -153,8 +153,6 @@ State is portable between projects via KernelSnapshot:
 
 ## The Incremental Path
 
-Capabilities layer on one step at a time. Each step is independently valuable.
-
 | Step | What It Adds             | Autonomy             | Status          |
 | ---- | ------------------------ | -------------------- | --------------- |
 | 0    | Self-evolution kernel    | Human evaluates      | **Implemented** |
