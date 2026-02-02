@@ -9,12 +9,45 @@ Claude Code IS the LLM — no separate API calls. Behavior is shaped by CLAUDE.m
 ```
 user gives task → Claude acts using CLAUDE.md + rules
                 → user provides feedback
-                → user invokes /evolve
+                → Claude auto-invokes evolve skill (or user types /evolve)
                 → Claude analyzes gap, classifies domain
                 → Claude edits .claude/rules/{world,valence,skill}/*.md
                 → hooks enforce invariants and log the change
                 → next task uses evolved rules
 ```
+
+### Skill Invocation: Explicit vs Implicit
+
+The `/evolve` skill does not require explicit invocation. Claude Code loads skill
+descriptions into context at session start. When the context matches a skill's
+description, the agent auto-invokes it and loads the full SKILL.md procedure.
+
+This was verified empirically via `test/cycle_protocol.bats`: a multi-turn test
+gave the agent feedback ("you used bash grep instead of the Grep tool") without
+mentioning `/evolve` or naming target files. The agent:
+
+1. Recognized the feedback matched the evolve skill description
+2. Auto-loaded the full 7-step procedure from SKILL.md
+3. Classified the feedback as skill domain
+4. Modified `.claude/rules/skill/tool-patterns.md`
+5. Updated `state.json` with the correct schema (only defined in SKILL.md)
+6. Incremented the CLAUDE.md version
+
+The two-stage loading mechanism:
+
+| Stage | What loads | When |
+|-------|-----------|------|
+| Session start | `description` field from SKILL.md frontmatter | Always — Claude knows what skills exist |
+| Invocation | Full SKILL.md content (procedure, tables, schemas) | On `/evolve` command OR auto-invocation by model |
+
+The `disable-model-invocation: true` frontmatter field can prevent auto-invocation,
+restricting a skill to explicit `/command` use only. The evolve skill does not set
+this, so both paths work.
+
+**Implication**: SKILL.md is not just a convenience wrapper — it carries the
+procedure (domain classification table, state.json schema, version increment logic)
+that CLAUDE.md references but does not contain. Without SKILL.md, the agent would
+have the intent to evolve (from CLAUDE.md) but not the structured procedure.
 
 ### Enforcement: Defense in Depth
 
