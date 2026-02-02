@@ -16,8 +16,6 @@ cd your-project
 bash /path/to/install.sh
 ```
 
-The installer runs preflight checks, handles conflicts with existing files (override/merge/cancel), and supports `--yes` for non-interactive mode. Run `bash install.sh --help` for all options.
-
 ## How It Works
 
 After completing a task in ClaudeCode, the agent follows the self-evolution cycle:
@@ -134,14 +132,14 @@ The devcontainer (`.devcontainer/`) installs all dependencies automatically incl
 
 **Test files:**
 
-| File                      | What it covers                          |
-| ------------------------- | --------------------------------------- |
-| `install_fresh.bats`      | Fresh install into an empty project     |
-| `install_flags.bats`      | Installer CLI flags (`--yes`, `--help`) |
-| `merge_settings.bats`     | Merging with existing settings.json     |
-| `merge_claude_md.bats`    | Merging with existing CLAUDE.md         |
-| `hooks.bats`              | Hook scripts (guard, logger, init)      |
-| `override.bats`           | Override/conflict handling              |
+| File                   | What it covers                          |
+| ---------------------- | --------------------------------------- |
+| `install_fresh.bats`   | Fresh install into an empty project     |
+| `install_flags.bats`   | Installer CLI flags (`--yes`, `--help`) |
+| `merge_settings.bats`  | Merging with existing settings.json     |
+| `merge_claude_md.bats` | Merging with existing CLAUDE.md         |
+| `hooks.bats`           | Hook scripts (guard, logger, init)      |
+| `override.bats`        | Override/conflict handling              |
 
 Each test runs in an isolated sandbox (temp dir with `git init`) that is cleaned up automatically.
 
