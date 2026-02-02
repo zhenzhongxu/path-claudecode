@@ -59,6 +59,22 @@ The agent's knowledge is split into three domains that evolve independently:
 
 At step 0, these start mostly empty. They fill in as you give feedback and run `/evolve`.
 
+## Event Log Sinks
+
+Events are written to the local JSONL file by default. You can configure additional sinks (webhook, shell command) in `.claude/path-kernel/config.json`:
+
+```json
+{
+  "sinks": [
+    { "type": "jsonl", "path": ".claude/path-kernel/event-log.jsonl", "enabled": true },
+    { "type": "webhook", "url": "https://example.com/events", "enabled": true },
+    { "type": "command", "command": "cat >> /tmp/events.jsonl", "enabled": true }
+  ]
+}
+```
+
+See `ARCHITECTURE.md` for full sink type reference.
+
 ## The Three Invariants
 
 1. **The loop is protected** — the perceive-act-feedback-reflect-modify cycle cannot be disabled or bypassed

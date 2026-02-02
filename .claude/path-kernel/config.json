@@ -11,5 +11,12 @@
     ".claude/path-kernel/event-log.jsonl",
     ".claude/rules/kernel/*",
     ".claude/settings.json"
+  ],
+  "sinks": [
+    {
+      "type": "jsonl",
+      "path": ".claude/path-kernel/event-log.jsonl",
+      "enabled": true
+    }
   ]
 }
