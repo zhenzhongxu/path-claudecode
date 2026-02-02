@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq uuid-runtime
+
+      - name: Install bats-core
+        run: |
+          curl -fsSL https://github.com/bats-core/bats-core/archive/refs/tags/v1.11.1.tar.gz -o bats.tar.gz
+          tar -xzf bats.tar.gz
+          sudo bats-core-1.11.1/install.sh /usr/local
+
+      - name: Run tests
+        run: bats test/
