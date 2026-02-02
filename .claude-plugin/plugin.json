@@ -1,0 +1,5 @@
+{
+  "name": "path-kernel",
+  "description": "Placeholder. No Implementation. Self-evolution kernel plugin for ClaudeCode. The kernel requires hooks, settings deny rules, and scripts beyond what the Claude Code plugin system currently supports (skills only). A plugin manifest (.claude-plugin/plugin.json) is included for forward compatibility — when the plugin system supports full project extensions, this will migrate to /plugin install.",
+  "version": "0.0.1"
+}

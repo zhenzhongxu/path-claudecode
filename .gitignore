@@ -1,0 +1,14 @@
+# Environment
+.env
+local.md
+
+# Claude Code local-only (personal overrides, not team-shared)
+.claude/settings.local.json
+.claude/*.local.json
+.claude/*.local.md
+CLAUDE.local.md
+
+# Path kernel runtime state (per-project, not shared)
+.claude/path-kernel/event-log.jsonl
+.claude/path-kernel/state.json
+.claude/path-kernel/exports/

@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(.claude/rules/kernel/*)",
+      "Write(.claude/rules/kernel/*)",
+      "Edit(.claude/settings.json)",
+      "Write(.claude/settings.json)",
+      "Edit(.claude/path-kernel/event-log.jsonl)",
+      "Write(.claude/path-kernel/event-log.jsonl)",
+      "Edit(.claude/path-kernel/config.json)",
+      "Write(.claude/path-kernel/config.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-edit-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-edit-logger.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start-init.sh",
+            "once": true
+          }
+        ]
+      }
+    ]
+  }
+}
