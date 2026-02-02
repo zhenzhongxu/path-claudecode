@@ -187,6 +187,7 @@ fetch_file() {
 # Usage: choice=$(prompt_conflict "filepath")
 prompt_conflict() {
   local file="$1"
+  local incoming="${2:-}"
 
   if [ "$AUTO_YES" = true ]; then
     echo "override"
@@ -219,7 +220,11 @@ prompt_conflict() {
       done
       ;;
     *)
-      echo "    2) Skip      — keep existing file unchanged" >&2
+      if [ -n "$incoming" ] && [ -f "$incoming" ] && diff -q "$file" "$incoming" &>/dev/null; then
+        echo "    2) Skip (recommended) — keep existing file unchanged" >&2
+      else
+        echo "    2) Skip      — keep existing file unchanged" >&2
+      fi
       echo "    3) Cancel    — abort installation" >&2
       echo "" >&2
       while true; do
@@ -396,9 +401,21 @@ install_single_file() {
   local make_exec="${4:-false}"     # chmod +x
 
   # Check for conflict
+  local prefetched=""
   if [ -f "$relpath" ]; then
+    # Prefetch incoming file for conflict comparison
+    prefetched="$(mktemp)"
+    if [ "$source_type" = "fetch" ]; then
+      if ! fetch_file "${REPO_URL}/${relpath}" "$prefetched"; then
+        rm -f "$prefetched"
+        die "Failed to fetch $relpath"
+      fi
+    else
+      printf '%s\n' "$content" > "$prefetched"
+    fi
+
     local action
-    action=$(prompt_conflict "$relpath")
+    action=$(prompt_conflict "$relpath" "$prefetched")
 
     case "$action" in
       override)
@@ -407,35 +424,27 @@ install_single_file() {
         ;;
       merge)
         backup_file "$relpath"
-        local tmpfile
-        tmpfile="$(mktemp)"
-
-        if [ "$source_type" = "fetch" ]; then
-          fetch_file "${REPO_URL}/${relpath}" "$tmpfile" || die "Failed to fetch $relpath"
-        else
-          echo "$content" > "$tmpfile"
-        fi
-
         local merged
         merged="$(mktemp)"
 
         case "$relpath" in
           .claude/settings.json)
-            merge_settings_json "$relpath" "$tmpfile" "$merged"
+            merge_settings_json "$relpath" "$prefetched" "$merged"
             if ! jq empty "$merged" 2>/dev/null; then
-              rm -f "$tmpfile" "$merged"
+              rm -f "$prefetched" "$merged"
               die "Merge produced invalid JSON for $relpath"
             fi
             ;;
           CLAUDE.md)
-            merge_claude_md "$relpath" "$tmpfile" "$merged"
+            merge_claude_md "$relpath" "$prefetched" "$merged"
             ;;
           *)
+            rm -f "$prefetched"
             die "Merge not supported for $relpath"
             ;;
         esac
 
-        rm -f "$tmpfile"
+        rm -f "$prefetched"
         mv "$merged" "$relpath"
         INSTALLED_FILES+=("$relpath")
         FILE_COUNT=$((FILE_COUNT + 1))
@@ -443,17 +452,21 @@ install_single_file() {
         return 0
         ;;
       skip)
+        rm -f "$prefetched"
         log_info "Skipped $relpath"
         return 0
         ;;
       cancel)
+        rm -f "$prefetched"
         die "Installation cancelled by user."
         ;;
     esac
   fi
 
   # Write the file
-  if [ "$source_type" = "fetch" ]; then
+  if [ -n "$prefetched" ] && [ -f "$prefetched" ]; then
+    mv "$prefetched" "$relpath"
+  elif [ "$source_type" = "fetch" ]; then
     fetch_file "${REPO_URL}/${relpath}" "$relpath" || die "Failed to fetch $relpath"
   else
     printf '%s\n' "$content" > "$relpath"

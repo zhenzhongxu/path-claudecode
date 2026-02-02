@@ -77,6 +77,70 @@ teardown() { teardown_sandbox; }
   [[ "$output" == *"event-log.jsonl"* ]]
 }
 
+@test "prompt_conflict shows (recommended) on Skip when files are identical" {
+  run_install
+
+  # Create a temp file identical to the installed file
+  local incoming
+  incoming="$(mktemp)"
+  cp .claude/rules/world/environment.md "$incoming"
+
+  # prompt_conflict prints the menu to stderr before blocking on read </dev/tty.
+  # Use timeout to capture the menu output, then check for the label.
+  local stderr_output
+  stderr_output=$(
+    PATH_INSTALL_SOURCED=1 source "$INSTALL_SH"
+    AUTO_YES=false
+    timeout 2 bash -c "
+      PATH_INSTALL_SOURCED=1 source \"$INSTALL_SH\"
+      AUTO_YES=false
+      prompt_conflict \".claude/rules/world/environment.md\" \"$incoming\"
+    " 2>&1 1>/dev/null || true
+  )
+
+  rm -f "$incoming"
+  [[ "$stderr_output" == *"Skip (recommended)"* ]]
+}
+
+@test "prompt_conflict does not show (recommended) when files differ" {
+  run_install
+
+  # Create a temp file different from the installed file
+  local incoming
+  incoming="$(mktemp)"
+  echo "different content" > "$incoming"
+
+  local stderr_output
+  stderr_output=$(
+    timeout 2 bash -c "
+      PATH_INSTALL_SOURCED=1 source \"$INSTALL_SH\"
+      AUTO_YES=false
+      prompt_conflict \".claude/rules/world/environment.md\" \"$incoming\"
+    " 2>&1 1>/dev/null || true
+  )
+
+  rm -f "$incoming"
+  # Should show plain "Skip" without "(recommended)"
+  [[ "$stderr_output" == *"Skip"* ]]
+  [[ "$stderr_output" != *"(recommended)"* ]]
+}
+
+@test "prompt_conflict shows plain Skip when no incoming file provided" {
+  run_install
+
+  local stderr_output
+  stderr_output=$(
+    timeout 2 bash -c "
+      PATH_INSTALL_SOURCED=1 source \"$INSTALL_SH\"
+      AUTO_YES=false
+      prompt_conflict \".claude/rules/world/environment.md\"
+    " 2>&1 1>/dev/null || true
+  )
+
+  [[ "$stderr_output" == *"Skip"* ]]
+  [[ "$stderr_output" != *"(recommended)"* ]]
+}
+
 @test "rollback cleans up on fetch failure" {
   # First install succeeds
   run_install
