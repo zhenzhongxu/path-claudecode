@@ -481,7 +481,7 @@ preflight() {
 
   # ── Check project root ─────────────────────────────────────────────────
   local is_project=false
-  for marker in .git package.json Cargo.toml go.mod pyproject.toml Makefile CMakeLists.txt build.gradle pom.xml; do
+  for marker in .claude CLAUDE.md; do
     if [ -e "$marker" ]; then
       is_project=true
       break
@@ -489,8 +489,8 @@ preflight() {
   done
 
   if [ "$is_project" = false ]; then
-    log_warn "No project markers found in $(pwd)"
-    echo "  Expected one of: .git, package.json, Cargo.toml, go.mod, pyproject.toml, etc."
+    log_warn "No Claude Code project markers found in $(pwd)"
+    echo "  Expected one of: .claude/, CLAUDE.md"
     if [ "$AUTO_YES" = false ]; then
       printf "\n  Continue anyway? [y/N]: "
       read -r yn </dev/tty
