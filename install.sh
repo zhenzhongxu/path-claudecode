@@ -1,10 +1,10 @@
 #!/bin/bash
 # shellcheck disable=SC2059
 # Path Self-Evolution Kernel Installer
-# https://github.com/path-claudecode/path
+# https://github.com/zhenzhongxu/path-claudecode
 #
 # Usage:
-#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/path-claudecode/path/HEAD/install.sh)"
+#   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/zhenzhongxu/path-claudecode/HEAD/install.sh)"
 #
 # Options:
 #   -y, --yes          Non-interactive mode (auto-override conflicts)
@@ -21,7 +21,7 @@ fi
 # =============================================================================
 
 INSTALLER_VERSION="1.0.0"
-DEFAULT_REPO_URL="https://raw.githubusercontent.com/path-claudecode/path/HEAD"
+DEFAULT_REPO_URL="https://raw.githubusercontent.com/zhenzhongxu/path-claudecode/HEAD"
 REPO_URL="${DEFAULT_REPO_URL}"
 AUTO_YES=false
 BACKUP_DIR=""
@@ -698,7 +698,7 @@ Examples:
   bash install.sh --yes
 
   # From GitHub
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/path-claudecode/path/HEAD/install.sh)"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/zhenzhongxu/path-claudecode/HEAD/install.sh)"
 
   # From a fork
   bash install.sh --repo-url https://raw.githubusercontent.com/yourfork/path/HEAD
@@ -743,7 +743,7 @@ main() {
 
   echo ""
   printf "${BOLD}Path Self-Evolution Kernel${RESET} ${DIM}v${INSTALLER_VERSION}${RESET}\n"
-  printf "${DIM}https://github.com/path-claudecode/path${RESET}\n"
+  printf "${DIM}https://github.com/zhenzhongxu/path-claudecode${RESET}\n"
 
   preflight
   install_path

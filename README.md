@@ -5,13 +5,13 @@ A Claude Code extension that learns from feedback by modifying its own operating
 ## Install
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/path-claudecode/path/HEAD/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/zhenzhongxu/path-claudecode/HEAD/install.sh)"
 ```
 
 Or clone and run locally:
 
 ```bash
-git clone https://github.com/path-claudecode/path.git
+git clone https://github.com/zhenzhongxu/path-claudecode.git
 cd your-project
 bash /path/to/install.sh
 ```
