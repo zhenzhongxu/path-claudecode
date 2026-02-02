@@ -50,6 +50,33 @@ teardown() { teardown_sandbox; }
   [[ "$(cat .claude/path-kernel/event-log.jsonl)" == *'"id":"test"'* ]]
 }
 
+@test "reinstall output lists files that will be overridden" {
+  run_install
+  run_install
+  [[ "$output" == *"Files that will be overridden"* ]]
+  # Check at least one file from each category appears
+  [[ "$output" == *".claude/hooks/"* ]]
+  [[ "$output" == *".claude/rules/"* ]]
+  [[ "$output" == *".claude/skills/"* ]]
+  [[ "$output" == *".claude/path-kernel/config.json"* ]]
+  [[ "$output" == *"CLAUDE.md"* ]]
+  [[ "$output" == *".claude/settings.json"* ]]
+}
+
+@test "reinstall output mentions export-state suggestion" {
+  run_install
+  run_install
+  [[ "$output" == *"/export-state"* ]]
+}
+
+@test "reinstall output mentions preserved files" {
+  run_install
+  run_install
+  [[ "$output" == *"Preserved"* ]]
+  [[ "$output" == *"state.json"* ]]
+  [[ "$output" == *"event-log.jsonl"* ]]
+}
+
 @test "rollback cleans up on fetch failure" {
   # First install succeeds
   run_install

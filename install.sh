@@ -237,6 +237,96 @@ prompt_conflict() {
 }
 
 # =============================================================================
+# Reinstall File Listing
+# =============================================================================
+
+list_reinstall_files() {
+  local found_any=false
+
+  # --- Hooks ---
+  local hook_found=()
+  for file in "${HOOK_FILES[@]}"; do
+    [ -f "$file" ] && hook_found+=("$file")
+  done
+  if [ ${#hook_found[@]} -gt 0 ]; then
+    found_any=true
+    printf "  ${BOLD}Hooks:${RESET}\n"
+    for f in "${hook_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  # --- Rules ---
+  local rule_found=()
+  for file in "${RULE_FILES[@]}"; do
+    [ -f "$file" ] && rule_found+=("$file")
+  done
+  if [ ${#rule_found[@]} -gt 0 ]; then
+    found_any=true
+    printf "  ${BOLD}Rules:${RESET}\n"
+    for f in "${rule_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  # --- Skills ---
+  local skill_found=()
+  for file in "${SKILL_FILES[@]}"; do
+    [ -f "$file" ] && skill_found+=("$file")
+  done
+  if [ ${#skill_found[@]} -gt 0 ]; then
+    found_any=true
+    printf "  ${BOLD}Skills:${RESET}\n"
+    for f in "${skill_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  # --- Config ---
+  local config_found=()
+  for file in "${CONFIG_FILES[@]}"; do
+    [ -f "$file" ] && config_found+=("$file")
+  done
+  if [ ${#config_found[@]} -gt 0 ]; then
+    found_any=true
+    printf "  ${BOLD}Config:${RESET}\n"
+    for f in "${config_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  # --- Top-level files ---
+  local toplevel_found=()
+  [ -f ".claude/settings.json" ] && toplevel_found+=(".claude/settings.json")
+  [ -f "CLAUDE.md" ] && toplevel_found+=("CLAUDE.md")
+  if [ ${#toplevel_found[@]} -gt 0 ]; then
+    found_any=true
+    printf "  ${BOLD}Top-level:${RESET}\n"
+    for f in "${toplevel_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  # --- Preserved files ---
+  local preserved_found=()
+  [ -f ".claude/path-kernel/state.json" ] && preserved_found+=(".claude/path-kernel/state.json")
+  [ -f ".claude/path-kernel/event-log.jsonl" ] && preserved_found+=(".claude/path-kernel/event-log.jsonl")
+  if [ ${#preserved_found[@]} -gt 0 ]; then
+    echo ""
+    printf "  ${GREEN}Preserved (will not be overwritten):${RESET}\n"
+    for f in "${preserved_found[@]}"; do
+      printf "    ${DIM}•${RESET} %s\n" "$f"
+    done
+  fi
+
+  if [ "$found_any" = true ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# =============================================================================
 # Merge Logic
 # =============================================================================
 
@@ -507,6 +597,12 @@ preflight() {
   if [ -f ".claude/path-kernel/config.json" ]; then
     log_warn "Path kernel is already installed in this project."
 
+    echo ""
+    printf "  ${BOLD}Files that will be overridden:${RESET}\n"
+    list_reinstall_files
+    echo ""
+    printf "  ${YELLOW}Tip:${RESET} Consider running ${BOLD}/export-state${RESET} in Claude Code first to save current kernel state.\n"
+
     if [ "$AUTO_YES" = true ]; then
       log_info "Auto-mode: will override existing installation"
       return 0
@@ -514,7 +610,7 @@ preflight() {
 
     echo ""
     echo "  Choose an action:"
-    echo "    1) Reinstall — replace all Path files (preserves event log)"
+    echo "    1) Reinstall — replace all Path files (state & event log preserved)"
     echo "    2) Cancel    — exit without changes"
     echo ""
     while true; do
