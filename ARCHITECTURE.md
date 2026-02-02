@@ -88,15 +88,21 @@ Append-only JSONL in `.claude/path-kernel/event-log.jsonl`. Each line is a JSON 
 }
 ```
 
-Event types produced by hooks:
+Event types produced by hooks (structural — always fire):
 - `system:init` — SessionStart hook logs session initialization
 - `modification:applied` — PostToolUse hook logs edits to mutable surfaces
+- `perception:situation` — UserPromptSubmit hook logs user prompts (truncated to ~2000 chars)
+- `system:session-end` — SessionEnd hook bookends `system:init`
 
-Event types produced by the agent (via `append-event.sh`):
+Event types produced by the agent (behavioral — via `append-event.sh` in skill instructions):
 - `system:export` — `/export-state` skill logs snapshot creation
+- `feedback:human` — `/evolve` skill logs the feedback input
+- `evolve:analysis` — `/evolve` skill logs gap analysis (summary, domain, proposed_change)
+- `reflection:analysis` — `/reflect` skill logs deep reflection results (summary, recommendations_count)
+- `modification:proposal` — `/evolve` skill logs proposed change before applying
 
 Event types available for future use:
-- `feedback:human`, `reflection:analysis`, `modification:rejected`, `perception:situation`, `perception:outcome`
+- `modification:rejected`, `perception:outcome`
 
 ### Export Format (KernelSnapshot)
 

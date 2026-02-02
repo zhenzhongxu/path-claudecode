@@ -21,9 +21,8 @@ if [ -z "$EVENT_TYPE" ]; then
   exit 1
 fi
 
-# Ensure log file exists
+# Ensure log directory exists
 mkdir -p "$(dirname "$LOG_PATH")"
-touch "$LOG_PATH"
 
 # Generate UUID
 if command -v uuidgen >/dev/null 2>&1; then

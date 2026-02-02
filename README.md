@@ -96,6 +96,8 @@ test/                                  # bats-core test suite
     pre-edit-guard.sh                  # PreToolUse: block protected file edits
     post-edit-logger.sh                # PostToolUse: log mutable surface edits
     session-start-init.sh              # SessionStart: init event + state restore
+    user-prompt-logger.sh              # UserPromptSubmit: log external perception
+    session-end-logger.sh              # SessionEnd: bookend for system:init
     append-event.sh                    # Utility for structured event logging
   path-kernel/                         # Runtime state
     config.json                        # Protected file lists (agentCanModify/agentCannotModify)
@@ -129,6 +131,7 @@ The devcontainer (`.devcontainer/`) installs all dependencies automatically incl
 | -------------------------- | --------------------------------------------------- |
 | `install_fresh.bats`       | Fresh install into an empty project                 |
 | `install_flags.bats`       | Installer CLI flags (`--yes`, `--help`)             |
+| `install_urls.bats`        | URL consistency between README and install.sh       |
 | `merge_settings.bats`      | Merging with existing settings.json                 |
 | `merge_claude_md.bats`     | Merging with existing CLAUDE.md                     |
 | `hooks.bats`               | Hook scripts (guard, logger, init)                  |

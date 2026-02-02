@@ -21,6 +21,18 @@ Read the following files to understand current state:
 2. **Current rules**: Read `.claude/path-kernel/config.json` for the authoritative list of mutable rule files (`agentCanModify`). Read each file listed there. These span three domains under `.claude/rules/`: world, valence, and skill.
 3. **Cycle state**: Read `.claude/path-kernel/state.json` if it exists, for cross-session context.
 
+### Step 1b: Log Feedback Event
+
+After gathering context, emit a `feedback:human` event to the event log. This captures the feedback input for observability.
+
+```bash
+PROMPT_VERSION=$(jq '.cycleCount // 0' .claude/path-kernel/state.json 2>/dev/null || echo 0)
+bash .claude/hooks/append-event.sh "feedback:human" \
+  '{"summary":"<brief feedback summary>"}' "$PROMPT_VERSION"
+```
+
+Replace `<brief feedback summary>` with a 1-sentence summary of the user's feedback.
+
 ### Step 2: Analyze the Gap
 
 Compare what happened (the feedback) against what should have happened. Identify:
@@ -28,6 +40,18 @@ Compare what happened (the feedback) against what should have happened. Identify
 - **What went wrong** (or what could be improved)
 - **Root cause**: Was it a misunderstanding of the situation (world), wrong priorities (valence), or poor technique (skill)?
 - **Specific change** that would prevent this gap in the future
+
+### Step 2b: Log Analysis Event
+
+After analyzing the gap, emit an `evolve:analysis` event capturing the analysis results.
+
+```bash
+PROMPT_VERSION=$(jq '.cycleCount // 0' .claude/path-kernel/state.json 2>/dev/null || echo 0)
+bash .claude/hooks/append-event.sh "evolve:analysis" \
+  '{"summary":"<gap identified>","domain":"<world|valence|skill>","proposed_change":"<brief>"}' "$PROMPT_VERSION"
+```
+
+Replace the placeholders with the actual analysis from Step 2.
 
 ### Step 3: Classify the Modification Domain
 
@@ -44,10 +68,17 @@ Route the change to the correct internal model:
 
 1. **Draft the change**: Write the specific text to add, modify, or remove from the target rules file.
 2. **State the rationale**: Explain why this change addresses the gap.
-3. **Apply the edit**: Use the Edit tool to modify the target `.claude/rules/{domain}/*.md` file.
+3. **Log the proposal**: Before applying the edit, emit a `modification:proposal` event:
+   ```bash
+   PROMPT_VERSION=$(jq '.cycleCount // 0' .claude/path-kernel/state.json 2>/dev/null || echo 0)
+   bash .claude/hooks/append-event.sh "modification:proposal" \
+     '{"domain":"<world|valence|skill>","target":"<file>","rationale":"<why>"}' "$PROMPT_VERSION"
+   ```
+   Replace placeholders with the actual domain, target file, and rationale.
+4. **Apply the edit**: Use the Edit tool to modify the target `.claude/rules/{domain}/*.md` file.
    - Keep changes focused and incremental. Prefer adding a specific lesson over rewriting entire sections.
    - Preserve existing content unless it directly contradicts the new learning.
-4. **The PostToolUse hook will automatically log this modification** to `.claude/path-kernel/event-log.jsonl`.
+5. **The PostToolUse hook will automatically log this modification** to `.claude/path-kernel/event-log.jsonl`.
 
 ### Step 5: Recompose CLAUDE.md
 

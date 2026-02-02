@@ -52,6 +52,12 @@ _write_path_settings() {
     ],
     "SessionStart": [
       {"hooks": [{"type": "command", "command": "bash .claude/hooks/session-start-init.sh", "once": true}]}
+    ],
+    "UserPromptSubmit": [
+      {"hooks": [{"type": "command", "command": "bash .claude/hooks/user-prompt-logger.sh", "async": true}]}
+    ],
+    "SessionEnd": [
+      {"hooks": [{"type": "command", "command": "bash .claude/hooks/session-end-logger.sh"}]}
     ]
   }
 }
@@ -108,15 +114,30 @@ _do_merge() {
   [ "$(jq -r '.hooks.PreToolUse[0].matcher' .claude/settings.json)" = "Bash" ]
 }
 
-@test "merge adds PostToolUse and SessionStart" {
+@test "merge adds all lifecycle hooks" {
   _do_merge
   [ "$(jq '.hooks.PostToolUse | length' .claude/settings.json)" -eq 1 ]
   [ "$(jq '.hooks.SessionStart | length' .claude/settings.json)" -eq 1 ]
+  [ "$(jq '.hooks.UserPromptSubmit | length' .claude/settings.json)" -eq 1 ]
+  [ "$(jq '.hooks.SessionEnd | length' .claude/settings.json)" -eq 1 ]
 }
 
 @test "merge produces valid JSON" {
   _do_merge
   assert_json_valid ".claude/settings.json"
+}
+
+@test "merge preserves every hook type from incoming settings" {
+  _do_merge
+  # Dynamically check all hook types in the Path fixture survive the merge
+  local hook_types
+  hook_types=$(jq -r '.hooks | keys[]' "$BATS_TEST_TMPDIR/path_settings.json")
+
+  while IFS= read -r type; do
+    [ -z "$type" ] && continue
+    jq -e --arg t "$type" '.hooks[$t] | length > 0' .claude/settings.json >/dev/null \
+      || { echo "Hook type $type missing after merge"; return 1; }
+  done <<< "$hook_types"
 }
 
 @test "merge is idempotent for hooks (no duplicates on second merge)" {
