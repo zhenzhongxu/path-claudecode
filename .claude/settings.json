@@ -5,8 +5,6 @@
       "Write(.claude/rules/kernel/*)",
       "Edit(.claude/settings.json)",
       "Write(.claude/settings.json)",
-      "Edit(.claude/path-kernel/event-log.jsonl)",
-      "Write(.claude/path-kernel/event-log.jsonl)",
       "Edit(.claude/path-kernel/config.json)",
       "Write(.claude/path-kernel/config.json)"
     ]

@@ -12,7 +12,7 @@ setup() {
 }
 teardown() { teardown_sandbox; }
 
-# --- 1. Settings deny rules completeness ---
+# --- 1. Settings deny rules and config.json consistency ---
 
 @test "every agentCannotModify pattern has Edit and Write deny rules in settings.json" {
   local patterns
@@ -25,6 +25,21 @@ teardown() { teardown_sandbox; }
     jq -e --arg p "Write($pattern)" '.permissions.deny | index($p) != null' .claude/settings.json >/dev/null \
       || { echo "missing Write deny rule for: $pattern"; return 1; }
   done <<< "$patterns"
+}
+
+@test "every settings.json deny rule corresponds to an agentCannotModify pattern" {
+  # Extract patterns from deny rules: "Edit(.claude/foo)" -> ".claude/foo"
+  local deny_patterns
+  deny_patterns=$(jq -r '.permissions.deny[]' .claude/settings.json | sed 's/^Edit(\(.*\))$/\1/; s/^Write(\(.*\))$/\1/' | sort -u)
+
+  local cannot_modify
+  cannot_modify=$(jq -r '.agentCannotModify[]' .claude/path-kernel/config.json)
+
+  while IFS= read -r pattern; do
+    [ -z "$pattern" ] && continue
+    echo "$cannot_modify" | grep -qF "$pattern" \
+      || { echo "deny rule pattern '$pattern' not in agentCannotModify"; return 1; }
+  done <<< "$deny_patterns"
 }
 
 # --- 2. Config consistency ---
@@ -45,10 +60,8 @@ teardown() { teardown_sandbox; }
     || { echo ".claude/settings.json missing from agentCannotModify"; return 1; }
 }
 
-@test "event-log.jsonl is in agentCannotModify" {
-  jq -e '.agentCannotModify | index(".claude/path-kernel/event-log.jsonl") != null' .claude/path-kernel/config.json >/dev/null \
-    || { echo "event-log.jsonl missing from agentCannotModify"; return 1; }
-}
+# Note: event-log.jsonl is in agentCanModify — append-only invariant is enforced
+# by protocol/hooks, not deny rules. The agent may need to log events directly.
 
 @test "config.json is in agentCannotModify" {
   jq -e '.agentCannotModify | index(".claude/path-kernel/config.json") != null' .claude/path-kernel/config.json >/dev/null \
@@ -62,7 +75,6 @@ teardown() { teardown_sandbox; }
   declare -A concrete_paths
   concrete_paths[".claude/rules/kernel/*"]="$SANDBOX/.claude/rules/kernel/invariants.md"
   concrete_paths[".claude/settings.json"]="$SANDBOX/.claude/settings.json"
-  concrete_paths[".claude/path-kernel/event-log.jsonl"]="$SANDBOX/.claude/path-kernel/event-log.jsonl"
   concrete_paths[".claude/path-kernel/config.json"]="$SANDBOX/.claude/path-kernel/config.json"
 
   local patterns
@@ -80,6 +92,7 @@ teardown() { teardown_sandbox; }
 
 @test "pre-edit-guard allows each agentCanModify pattern" {
   declare -A concrete_paths
+  concrete_paths[".claude/path-kernel/event-log.jsonl"]="$SANDBOX/.claude/path-kernel/event-log.jsonl"
   concrete_paths[".claude/path-kernel/state.json"]="$SANDBOX/.claude/path-kernel/state.json"
   concrete_paths[".claude/rules/skill/*"]="$SANDBOX/.claude/rules/skill/tool-patterns.md"
   concrete_paths[".claude/rules/valence/*"]="$SANDBOX/.claude/rules/valence/priorities.md"

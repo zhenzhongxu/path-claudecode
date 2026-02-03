@@ -26,9 +26,9 @@ teardown() { teardown_sandbox; }
   [ "$status" -eq 2 ]
 }
 
-@test "pre-edit-guard blocks event-log.jsonl" {
+@test "pre-edit-guard allows event-log.jsonl" {
   run bash -c "echo '{\"tool_input\":{\"file_path\":\"$SANDBOX/.claude/path-kernel/event-log.jsonl\"}}' | bash .claude/hooks/pre-edit-guard.sh"
-  [ "$status" -eq 2 ]
+  [ "$status" -eq 0 ]
 }
 
 @test "pre-edit-guard blocks config.json" {

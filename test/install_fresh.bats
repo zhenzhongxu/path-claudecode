@@ -72,7 +72,7 @@ EXPECTED_FILES=(
   run_install
   assert_json_valid ".claude/settings.json"
 
-  [ "$(jq '.permissions.deny | length' .claude/settings.json)" -eq 8 ]
+  [ "$(jq '.permissions.deny | length' .claude/settings.json)" -eq 6 ]
   [ "$(jq '.hooks.PreToolUse | length' .claude/settings.json)" -eq 1 ]
   [ "$(jq '.hooks.PostToolUse | length' .claude/settings.json)" -eq 1 ]
   [ "$(jq '.hooks.SessionStart | length' .claude/settings.json)" -eq 1 ]
