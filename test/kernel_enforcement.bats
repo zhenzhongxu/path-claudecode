@@ -12,7 +12,7 @@ setup() {
 }
 teardown() { teardown_sandbox; }
 
-# --- 1. Settings deny rules completeness ---
+# --- 1. Settings deny rules and config.json consistency ---
 
 @test "every agentCannotModify pattern has Edit and Write deny rules in settings.json" {
   local patterns
@@ -25,6 +25,21 @@ teardown() { teardown_sandbox; }
     jq -e --arg p "Write($pattern)" '.permissions.deny | index($p) != null' .claude/settings.json >/dev/null \
       || { echo "missing Write deny rule for: $pattern"; return 1; }
   done <<< "$patterns"
+}
+
+@test "every settings.json deny rule corresponds to an agentCannotModify pattern" {
+  # Extract patterns from deny rules: "Edit(.claude/foo)" -> ".claude/foo"
+  local deny_patterns
+  deny_patterns=$(jq -r '.permissions.deny[]' .claude/settings.json | sed 's/^Edit(\(.*\))$/\1/; s/^Write(\(.*\))$/\1/' | sort -u)
+
+  local cannot_modify
+  cannot_modify=$(jq -r '.agentCannotModify[]' .claude/path-kernel/config.json)
+
+  while IFS= read -r pattern; do
+    [ -z "$pattern" ] && continue
+    echo "$cannot_modify" | grep -qF "$pattern" \
+      || { echo "deny rule pattern '$pattern' not in agentCannotModify"; return 1; }
+  done <<< "$deny_patterns"
 }
 
 # --- 2. Config consistency ---
