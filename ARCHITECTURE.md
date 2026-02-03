@@ -104,6 +104,28 @@ Event types produced by the agent (behavioral — via `append-event.sh` in skill
 Event types available for future use:
 - `modification:rejected`, `perception:outcome`
 
+### Event Log Sinks
+
+Events are dispatched to configurable sinks defined in `.claude/path-kernel/config.json` under the `sinks` key. If no `sinks` key exists, events fall back to the hardcoded local JSONL file (backward compatible).
+
+```json
+{
+  "sinks": [
+    { "type": "jsonl", "path": ".claude/path-kernel/event-log.jsonl", "enabled": true },
+    { "type": "webhook", "url": "https://example.com/events", "headers": {"Authorization": "Bearer tok"}, "enabled": true },
+    { "type": "command", "command": "kcat -b broker:9092 -t path-events -P", "enabled": true }
+  ]
+}
+```
+
+| Type | Dispatch | Behavior |
+|------|----------|----------|
+| `jsonl` | Synchronous | Append event JSON line to `path` (relative paths resolved from project root) |
+| `webhook` | Async (background) | `curl -s -X POST` with JSON body. Optional `headers` object for auth. |
+| `command` | Async (background) | Pipe event JSON to command via stdin. |
+
+External sinks (webhook, command) run in background subshells — failures don't block or break hooks. Sink configuration is protected by deny rules (`agentCannotModify`) so only the human can change it.
+
 ### Export Format (KernelSnapshot)
 
 `/export-state` produces a self-contained JSON snapshot:

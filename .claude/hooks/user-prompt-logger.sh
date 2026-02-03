@@ -12,8 +12,8 @@ INPUT=$(cat)
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty' 2>/dev/null)
 [ -z "$PROMPT" ] && exit 0
 
-# Approximate 500 tokens ≈ 2000 characters; cut is character-safe (no mid-UTF8 splits)
-TRUNCATED=$(echo "$PROMPT" | cut -c1-2000)
+# Approximate 500 tokens ≈ 2000 characters; use LC_ALL=C.UTF-8 for safe truncation
+TRUNCATED=$(echo "$PROMPT" | LC_ALL=C.UTF-8 cut -c1-2000 2>/dev/null || echo "$PROMPT" | head -c 2000)
 
 STATE_FILE="$PROJECT_DIR/.claude/path-kernel/state.json"
 PROMPT_VERSION=0

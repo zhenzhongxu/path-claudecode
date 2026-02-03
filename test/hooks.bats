@@ -198,6 +198,106 @@ teardown() { teardown_sandbox; }
   [ "$(echo "$line" | jq -r '.data.raw')" = "not valid json" ]
 }
 
+# --- sink dispatch ---
+
+@test "append-event dispatches to jsonl sink from config" {
+  local custom_log="$SANDBOX/.claude/path-kernel/custom-events.jsonl"
+  jq '.sinks = [{"type":"jsonl","path":".claude/path-kernel/custom-events.jsonl","enabled":true}]' \
+    .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  bash .claude/hooks/append-event.sh "test:sink" '{"key":"val"}' 0 2>/dev/null
+
+  [ -f "$custom_log" ]
+  [ "$(wc -l < "$custom_log" | tr -d ' ')" -eq 1 ]
+  [ "$(head -1 "$custom_log" | jq -r '.type')" = "test:sink" ]
+  # Default path should NOT have the event (sink replaced it)
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 0 ]
+}
+
+@test "append-event dispatches to command sink" {
+  local cmd_output="$SANDBOX/command-sink-output.jsonl"
+  # Configure both default jsonl + a command sink
+  jq --arg out "$cmd_output" \
+    '.sinks = [
+      {"type":"jsonl","path":".claude/path-kernel/event-log.jsonl","enabled":true},
+      {"type":"command","command":("cat >> " + $out),"enabled":true}
+    ]' .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  bash .claude/hooks/append-event.sh "test:cmd" '{"via":"command"}' 0 2>/dev/null
+  sleep 0.5  # wait for async background process
+
+  [ -f "$cmd_output" ]
+  [ "$(head -1 "$cmd_output" | jq -r '.type')" = "test:cmd" ]
+}
+
+@test "append-event dispatches to multiple sinks" {
+  local sink_a="$SANDBOX/.claude/path-kernel/sink-a.jsonl"
+  local sink_b="$SANDBOX/.claude/path-kernel/sink-b.jsonl"
+  jq '.sinks = [
+    {"type":"jsonl","path":".claude/path-kernel/sink-a.jsonl","enabled":true},
+    {"type":"jsonl","path":".claude/path-kernel/sink-b.jsonl","enabled":true}
+  ]' .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  bash .claude/hooks/append-event.sh "test:multi" '{"n":2}' 0 2>/dev/null
+
+  [ "$(wc -l < "$sink_a" | tr -d ' ')" -eq 1 ]
+  [ "$(wc -l < "$sink_b" | tr -d ' ')" -eq 1 ]
+  [ "$(head -1 "$sink_a" | jq -r '.type')" = "test:multi" ]
+  [ "$(head -1 "$sink_b" | jq -r '.type')" = "test:multi" ]
+}
+
+@test "append-event skips disabled sinks" {
+  local disabled_log="$SANDBOX/.claude/path-kernel/disabled.jsonl"
+  jq '.sinks = [
+    {"type":"jsonl","path":".claude/path-kernel/event-log.jsonl","enabled":true},
+    {"type":"jsonl","path":".claude/path-kernel/disabled.jsonl","enabled":false}
+  ]' .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  bash .claude/hooks/append-event.sh "test:skip" '{}' 0 2>/dev/null
+
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 1 ]
+  # Disabled sink should not exist or be empty
+  if [ -f "$disabled_log" ]; then
+    [ "$(wc -l < "$disabled_log" | tr -d ' ')" -eq 0 ]
+  fi
+}
+
+@test "append-event falls back when no sinks key" {
+  # Remove sinks key from config.json
+  jq 'del(.sinks)' .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  bash .claude/hooks/append-event.sh "test:fallback" '{"compat":true}' 0 2>/dev/null
+
+  [ "$(wc -l < .claude/path-kernel/event-log.jsonl | tr -d ' ')" -eq 1 ]
+  [ "$(head -1 .claude/path-kernel/event-log.jsonl | jq -r '.type')" = "test:fallback" ]
+}
+
+@test "append-event webhook builds correct curl args" {
+  local curl_log="$SANDBOX/curl-args.log"
+  # Create a mock curl that logs its arguments
+  mkdir -p "$SANDBOX/bin"
+  cat > "$SANDBOX/bin/curl" << 'MOCKCURL'
+#!/bin/bash
+echo "$@" >> "$CURL_LOG"
+MOCKCURL
+  chmod +x "$SANDBOX/bin/curl"
+
+  jq '.sinks = [{"type":"webhook","url":"https://test.example.com/events","headers":{"X-Token":"abc123"},"enabled":true}]' \
+    .claude/path-kernel/config.json > /tmp/cfg.json && mv /tmp/cfg.json .claude/path-kernel/config.json
+
+  CURL_LOG="$curl_log" PATH="$SANDBOX/bin:$PATH" \
+    bash .claude/hooks/append-event.sh "test:webhook" '{"wh":true}' 0 2>/dev/null
+  sleep 0.5  # wait for async background process
+
+  [ -f "$curl_log" ]
+  # Verify Content-Type header present
+  grep -q "Content-Type: application/json" "$curl_log"
+  # Verify custom header present
+  grep -q "X-Token: abc123" "$curl_log"
+  # Verify URL present
+  grep -q "https://test.example.com/events" "$curl_log"
+}
+
 # --- user-prompt-logger.sh ---
 
 @test "user-prompt-logger logs perception:situation event" {

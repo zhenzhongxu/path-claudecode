@@ -60,6 +60,22 @@ The agent's knowledge is split into three domains that evolve independently:
 
 At step 0, these start mostly empty. They fill in as you give feedback and run `/evolve`.
 
+## Event Log Sinks
+
+Events are written to the local JSONL file by default. You can configure additional sinks (webhook, shell command) in `.claude/path-kernel/config.json`:
+
+```json
+{
+  "sinks": [
+    { "type": "jsonl", "path": ".claude/path-kernel/event-log.jsonl", "enabled": true },
+    { "type": "webhook", "url": "https://example.com/events", "enabled": true },
+    { "type": "command", "command": "cat >> /tmp/events.jsonl", "enabled": true }
+  ]
+}
+```
+
+See `ARCHITECTURE.md` for full sink type reference.
+
 ## The Three Invariants
 
 1. **The loop is protected** — the perceive-act-feedback-reflect-modify cycle cannot be disabled or bypassed
@@ -140,6 +156,7 @@ The devcontainer (`.devcontainer/`) installs all dependencies automatically incl
 | `kernel_enforcement.bats`  | Structural consistency of enforcement layers        |
 | `agent_enforcement.bats`   | Claude Code deny rules + preflight format checks    |
 | `cycle_protocol.bats`      | End-to-end self-evolution cycle behavior             |
+| `sinks_integration.bats`   | Streaming sink delivery (Redis, NATS, Redpanda)      |
 
 Each test runs in an isolated sandbox (temp dir with `git init`) that is cleaned up automatically.
 
@@ -159,6 +176,27 @@ PATH_AGENT_TESTS=1 bats --verbose-run test/cycle_protocol.bats
 ```
 
 **Requirements:** `claude` CLI installed with valid API authentication.
+
+### Streaming sink integration tests
+
+The `sinks_integration.bats` file tests end-to-end delivery of events through the `command` sink type to real streaming services. These require the devcontainer docker-compose services (Redis, NATS, Redpanda) to be running.
+
+```bash
+# Run with streaming sink tests enabled
+PATH_SINK_TESTS=1 bats test/sinks_integration.bats
+
+# Run full suite including sink tests
+PATH_SINK_TESTS=1 bats test/
+```
+
+**Requirements:** Devcontainer running with docker-compose services (Redis, NATS, Redpanda). The `redis-cli`, `nats`, and `rpk` CLI tools are installed automatically by `.devcontainer/setup.sh`.
+
+**What the sink tests cover:**
+
+- **Redis Streams** — event delivered via `redis-cli -x XADD` and verified with `XREVRANGE`
+- **NATS JetStream** — event published via `nats pub` and verified with `nats stream get`
+- **Redpanda (Kafka API)** — event produced via `rpk topic produce` and consumed with `rpk topic consume`
+- **Fan-out** — single event reaches all three streaming sinks plus jsonl simultaneously
 
 **What the agent tests cover:**
 
