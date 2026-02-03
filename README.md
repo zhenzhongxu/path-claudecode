@@ -218,7 +218,7 @@ State is portable between projects via KernelSnapshot:
 | Step | What It Adds             | Autonomy             | Status          |
 | ---- | ------------------------ | -------------------- | --------------- |
 | 0    | Self-evolution kernel    | Human evaluates      | **Implemented** |
-| 1    | Event log                | Human teaches        | **Partial**     |
+| 1    | Event log                | Human teaches        | **Implemented** |
 | 2    | Structured memory        | Human teaches        | Future          |
 | 3    | Self-model + calibration | Human audits         | Future          |
 | 4    | Internal evaluation      | Agent self-evaluates | Future          |
