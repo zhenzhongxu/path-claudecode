@@ -1,5 +1,6 @@
 {
   "agentCanModify": [
+    ".claude/path-kernel/event-log.jsonl",
     ".claude/path-kernel/state.json",
     ".claude/rules/skill/*",
     ".claude/rules/valence/*",
@@ -8,7 +9,6 @@
   ],
   "agentCannotModify": [
     ".claude/path-kernel/config.json",
-    ".claude/path-kernel/event-log.jsonl",
     ".claude/rules/kernel/*",
     ".claude/settings.json"
   ],

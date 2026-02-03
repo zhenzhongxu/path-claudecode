@@ -45,10 +45,8 @@ teardown() { teardown_sandbox; }
     || { echo ".claude/settings.json missing from agentCannotModify"; return 1; }
 }
 
-@test "event-log.jsonl is in agentCannotModify" {
-  jq -e '.agentCannotModify | index(".claude/path-kernel/event-log.jsonl") != null' .claude/path-kernel/config.json >/dev/null \
-    || { echo "event-log.jsonl missing from agentCannotModify"; return 1; }
-}
+# Note: event-log.jsonl is in agentCanModify — append-only invariant is enforced
+# by protocol/hooks, not deny rules. The agent may need to log events directly.
 
 @test "config.json is in agentCannotModify" {
   jq -e '.agentCannotModify | index(".claude/path-kernel/config.json") != null' .claude/path-kernel/config.json >/dev/null \
@@ -62,7 +60,6 @@ teardown() { teardown_sandbox; }
   declare -A concrete_paths
   concrete_paths[".claude/rules/kernel/*"]="$SANDBOX/.claude/rules/kernel/invariants.md"
   concrete_paths[".claude/settings.json"]="$SANDBOX/.claude/settings.json"
-  concrete_paths[".claude/path-kernel/event-log.jsonl"]="$SANDBOX/.claude/path-kernel/event-log.jsonl"
   concrete_paths[".claude/path-kernel/config.json"]="$SANDBOX/.claude/path-kernel/config.json"
 
   local patterns
@@ -80,6 +77,7 @@ teardown() { teardown_sandbox; }
 
 @test "pre-edit-guard allows each agentCanModify pattern" {
   declare -A concrete_paths
+  concrete_paths[".claude/path-kernel/event-log.jsonl"]="$SANDBOX/.claude/path-kernel/event-log.jsonl"
   concrete_paths[".claude/path-kernel/state.json"]="$SANDBOX/.claude/path-kernel/state.json"
   concrete_paths[".claude/rules/skill/*"]="$SANDBOX/.claude/rules/skill/tool-patterns.md"
   concrete_paths[".claude/rules/valence/*"]="$SANDBOX/.claude/rules/valence/priorities.md"

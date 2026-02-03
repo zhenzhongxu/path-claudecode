@@ -37,8 +37,6 @@ _write_path_settings() {
       "Write(.claude/rules/kernel/*)",
       "Edit(.claude/settings.json)",
       "Write(.claude/settings.json)",
-      "Edit(.claude/path-kernel/event-log.jsonl)",
-      "Write(.claude/path-kernel/event-log.jsonl)",
       "Edit(.claude/path-kernel/config.json)",
       "Write(.claude/path-kernel/config.json)"
     ]
@@ -81,9 +79,9 @@ _do_merge() {
   [ "$(jq -r '.permissions.allow[0]' .claude/settings.json)" = "Bash(npm test:*)" ]
 }
 
-@test "merge combines deny arrays (2 existing + 8 path = 10)" {
+@test "merge combines deny arrays (2 existing + 6 path = 8)" {
   _do_merge
-  [ "$(jq '.permissions.deny | length' .claude/settings.json)" -eq 10 ]
+  [ "$(jq '.permissions.deny | length' .claude/settings.json)" -eq 8 ]
   [ "$(jq '[.permissions.deny[] | select(. == "Edit(.env)")] | length' .claude/settings.json)" -eq 1 ]
   [ "$(jq '[.permissions.deny[] | select(. == "Edit(.claude/rules/kernel/*)")] | length' .claude/settings.json)" -eq 1 ]
 }
