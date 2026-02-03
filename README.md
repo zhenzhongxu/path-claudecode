@@ -4,6 +4,7 @@ A Claude Code extension that learns from feedback by modifying its own operating
 
 ## Install
 
+Intall in local project folder:
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/zhenzhongxu/path-claudecode/HEAD/install.sh)"
 ```
