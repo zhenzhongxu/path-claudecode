@@ -100,6 +100,16 @@ teardown() { teardown_sandbox; }
   [[ "$output" == *"refactor auth"* ]]
 }
 
+@test "session-start-init pending feedback with quotes in task produces valid JSON" {
+  echo '{"lastTask":"fix \"quoted\" issue","lastFeedback":null,"lastModification":null,"lastModificationRationale":null,"awaitingFeedback":true,"cycleCount":1}' \
+    > .claude/path-kernel/state.json
+
+  run bash .claude/hooks/session-start-init.sh
+  [[ "$output" == *"CYCLE IN PROGRESS"* ]]
+  # Output must be valid JSON
+  echo "$output" | jq empty
+}
+
 @test "session-start-init is silent when no pending feedback" {
   run bash .claude/hooks/session-start-init.sh
   [[ "$output" != *"CYCLE IN PROGRESS"* ]]

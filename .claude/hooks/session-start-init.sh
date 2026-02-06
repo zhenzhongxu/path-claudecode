@@ -23,7 +23,7 @@ if [ -f "$PROJECT_DIR/.claude/path-kernel/state.json" ]; then
   AWAITING=$(jq -r '.awaitingFeedback // false' "$PROJECT_DIR/.claude/path-kernel/state.json" 2>/dev/null)
   if [ "$AWAITING" = "true" ]; then
     LAST_TASK=$(jq -r '.lastTask // "unknown"' "$PROJECT_DIR/.claude/path-kernel/state.json" 2>/dev/null)
-    echo "{\"additionalContext\":\"CYCLE IN PROGRESS: A task was completed in a previous session (task: $LAST_TASK). Ask the user for feedback before starting new work.\"}"
+    jq -n --arg task "$LAST_TASK" '{"additionalContext":("CYCLE IN PROGRESS: A task was completed in a previous session (task: " + $task + "). Ask the user for feedback before starting new work.")}'
   fi
 fi
 
